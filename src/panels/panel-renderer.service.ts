@@ -8,15 +8,21 @@ const BUTTON_STYLES: Record<string, ButtonStyle> = {
   DANGER: ButtonStyle.Danger,
 };
 
+const TYPE_LABELS: Record<string, string> = {
+  SELF_ROLE: 'Self-role panel',
+  RULES: 'Rules panel',
+  ANNOUNCEMENT: 'Announcement panel',
+};
+
 @Injectable()
 export class PanelRendererService {
   render(panel: any, guild: Guild) {
     const embed = new EmbedBuilder()
       .setColor(parseInt((panel.color || '#5865F2').replace('#', ''), 16))
-      .setTitle(panel.title || '✦ Self Roles')
+      .setTitle(panel.title || this.defaultTitle(panel.type))
       .setDescription(this.description(panel))
       .setAuthor({ name: guild.name, iconURL: guild.iconURL({ size: 128 }) || undefined })
-      .setFooter({ text: `${panel.roles?.length || 0} role tersedia · ${panel.mode}` })
+      .setFooter({ text: this.footer(panel) })
       .setTimestamp();
 
     if (panel.thumbnailUrl) embed.setThumbnail(panel.thumbnailUrl);
@@ -25,17 +31,36 @@ export class PanelRendererService {
     return { embeds: [embed], components: this.components(panel) };
   }
 
+  private defaultTitle(type?: string) {
+    if (type === 'RULES') return 'Server Rules';
+    if (type === 'ANNOUNCEMENT') return 'Announcement';
+    return '✦ Self Roles';
+  }
+
+  private footer(panel: any) {
+    const type = TYPE_LABELS[panel.type || 'SELF_ROLE'] || 'Panel';
+    const count = panel.roles?.length || 0;
+    if ((panel.type || 'SELF_ROLE') === 'SELF_ROLE') return `${count} role tersedia · ${panel.mode}`;
+    if (count > 0) return `${type} · ${count} optional buttons`;
+    return type;
+  }
+
   private description(panel: any) {
-    const lines = [panel.accentText, panel.description, '✦ ━━━━━━━━━━━━━━━━━━━━━━ ✦'].filter(Boolean);
-    for (const role of panel.roles || []) {
-      lines.push(`${role.emoji || '✧'}  ✧ <@&${role.roleId}>${role.description ? ` — ${role.description}` : ''}`);
+    const roles = panel.roles || [];
+    const lines = [panel.accentText, panel.description].filter(Boolean);
+    if ((panel.type || 'SELF_ROLE') === 'SELF_ROLE' && roles.length) {
+      lines.push('✦ ━━━━━━━━━━━━━━━━━━━━━━ ✦');
+      for (const role of roles) {
+        lines.push(`${role.emoji || '✧'}  ✧ <@&${role.roleId}>${role.description ? ` — ${role.description}` : ''}`);
+      }
     }
-    return lines.join('\n');
+    return lines.join('\n') || 'No content configured yet.';
   }
 
   private components(panel: any) {
     const roles = panel.roles || [];
     if (!roles.length) return [];
+    if ((panel.type || 'SELF_ROLE') !== 'SELF_ROLE') return [];
     if (panel.mode === 'MENU') {
       const menu = new StringSelectMenuBuilder()
         .setCustomId(`sr-menu:${panel.id}`)

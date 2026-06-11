@@ -49,6 +49,7 @@ model Panel {
   title           String
   accentText      String?
   description     String?
+  type            PanelType   @default(SELF_ROLE)
   mode            PanelMode   @default(BUTTONS)
   style           PanelStyle  @default(PREMIUM)
   color           String      @default("#5865F2")
@@ -100,6 +101,12 @@ model AuditLog {
   action    String
   metadata  Json?
   createdAt DateTime @default(now())
+}
+
+enum PanelType {
+  SELF_ROLE
+  RULES
+  ANNOUNCEMENT
 }
 
 enum PanelMode {
