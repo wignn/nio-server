@@ -8,6 +8,7 @@ import { PanelsService } from './panels.service';
 import { CreatePanelDto } from './dto/create-panel.dto';
 import { UpdatePanelDto } from './dto/update-panel.dto';
 import { CreatePanelRoleDto } from './dto/create-panel-role.dto';
+import { ReorderPanelRolesDto } from './dto/reorder-panel-roles.dto';
 
 @UseGuards(SessionAuthGuard, GuildAccessGuard)
 @Controller('guilds/:guildId')
@@ -47,6 +48,11 @@ export class PanelsController {
     return { ok: true, role: await this.panels.addRole(guildId, panelId, dto) };
   }
 
+  @Patch('panels/:panelId/roles/reorder')
+  async reorderRoles(@Param('guildId') guildId: string, @Param('panelId') panelId: string, @Body() dto: ReorderPanelRolesDto) {
+    return { ok: true, panel: await this.panels.reorderRoles(guildId, panelId, dto) };
+  }
+
   @Delete('panels/:panelId/roles/:roleOptionId')
   async removeRole(@Param('guildId') guildId: string, @Param('panelId') panelId: string, @Param('roleOptionId') roleOptionId: string) {
     return { ok: true, role: await this.panels.removeRole(guildId, panelId, roleOptionId) };
@@ -58,6 +64,14 @@ export class PanelsController {
     const message = await this.publisher.publish(panel);
     const updated = await this.panels.markPublished(guildId, panelId, message.id);
     return { ok: true, messageId: message.id, panel: updated };
+  }
+
+  @Delete('panels/:panelId/publish')
+  async unpublish(@Param('guildId') guildId: string, @Param('panelId') panelId: string) {
+    const panel = await this.panels.get(guildId, panelId);
+    await this.publisher.deletePublishedMessage(panel);
+    const updated = await this.panels.markUnpublished(guildId, panelId);
+    return { ok: true, panel: updated };
   }
 
   @Get('analytics')

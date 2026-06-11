@@ -6,6 +6,7 @@ import { AppError } from '../common/errors/app-error';
 import { CreatePanelDto } from './dto/create-panel.dto';
 import { UpdatePanelDto } from './dto/update-panel.dto';
 import { CreatePanelRoleDto } from './dto/create-panel-role.dto';
+import { ReorderPanelRolesDto } from './dto/reorder-panel-roles.dto';
 
 @Injectable()
 export class PanelsService {
@@ -112,11 +113,44 @@ export class PanelsService {
     return this.prisma.panelRole.delete({ where: { id: roleOptionId } });
   }
 
+  async reorderRoles(guildId: string, panelId: string, dto: ReorderPanelRolesDto) {
+    const panel = await this.get(guildId, panelId);
+    const currentIds = new Set(panel.roles.map((role) => role.id));
+    const uniqueIds = new Set(dto.roleOptionIds);
+
+    if (uniqueIds.size !== dto.roleOptionIds.length || uniqueIds.size !== currentIds.size) {
+      throw new AppError('VALIDATION_ERROR', 'Role order must include every panel role exactly once', 400);
+    }
+
+    for (const roleOptionId of dto.roleOptionIds) {
+      if (!currentIds.has(roleOptionId)) {
+        throw new AppError('VALIDATION_ERROR', 'Role order contains role from another panel', 400);
+      }
+    }
+
+    await this.prisma.$transaction(
+      dto.roleOptionIds.map((roleOptionId, position) =>
+        this.prisma.panelRole.update({ where: { id: roleOptionId }, data: { position } }),
+      ),
+    );
+
+    return this.get(guildId, panelId);
+  }
+
   async markPublished(guildId: string, panelId: string, messageId: string) {
     await this.get(guildId, panelId);
     return this.prisma.panel.update({
       where: { id: panelId },
       data: { messageId, status: 'PUBLISHED', lastPublishedAt: new Date() },
+      include: { roles: { orderBy: { position: 'asc' } } },
+    });
+  }
+
+  async markUnpublished(guildId: string, panelId: string) {
+    await this.get(guildId, panelId);
+    return this.prisma.panel.update({
+      where: { id: panelId },
+      data: { messageId: null, status: PanelStatus.DRAFT, lastPublishedAt: null },
       include: { roles: { orderBy: { position: 'asc' } } },
     });
   }
