@@ -8,6 +8,7 @@ import { PanelsService } from './panels.service';
 import { CreatePanelDto } from './dto/create-panel.dto';
 import { UpdatePanelDto } from './dto/update-panel.dto';
 import { CreatePanelRoleDto } from './dto/create-panel-role.dto';
+import { UpdatePanelRoleDto } from './dto/update-panel-role.dto';
 import { ReorderPanelRolesDto } from './dto/reorder-panel-roles.dto';
 
 @UseGuards(SessionAuthGuard, GuildAccessGuard)
@@ -51,6 +52,16 @@ export class PanelsController {
   @Patch('panels/:panelId/roles/reorder')
   async reorderRoles(@Param('guildId') guildId: string, @Param('panelId') panelId: string, @Body() dto: ReorderPanelRolesDto) {
     return { ok: true, panel: await this.panels.reorderRoles(guildId, panelId, dto) };
+  }
+
+  @Patch('panels/:panelId/roles/:roleOptionId')
+  async updateRole(
+    @Param('guildId') guildId: string,
+    @Param('panelId') panelId: string,
+    @Param('roleOptionId') roleOptionId: string,
+    @Body() dto: UpdatePanelRoleDto,
+  ) {
+    return { ok: true, role: await this.panels.updateRole(guildId, panelId, roleOptionId, dto) };
   }
 
   @Delete('panels/:panelId/roles/:roleOptionId')

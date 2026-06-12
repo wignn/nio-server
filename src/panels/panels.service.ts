@@ -6,6 +6,7 @@ import { AppError } from '../common/errors/app-error';
 import { CreatePanelDto } from './dto/create-panel.dto';
 import { UpdatePanelDto } from './dto/update-panel.dto';
 import { CreatePanelRoleDto } from './dto/create-panel-role.dto';
+import { UpdatePanelRoleDto } from './dto/update-panel-role.dto';
 import { ReorderPanelRolesDto } from './dto/reorder-panel-roles.dto';
 
 @Injectable()
@@ -106,6 +107,26 @@ export class PanelsService {
         description: dto.description,
         buttonStyle: dto.buttonStyle,
         position: maxPosition + 1,
+      },
+    });
+  }
+
+  async updateRole(guildId: string, panelId: string, roleOptionId: string, dto: UpdatePanelRoleDto) {
+    await this.get(guildId, panelId);
+
+    const roleOption = await this.prisma.panelRole.findFirst({
+      where: { id: roleOptionId, panelId },
+    });
+    if (!roleOption) throw new AppError('PANEL_ROLE_NOT_FOUND', 'Role option not found', 404);
+
+    return this.prisma.panelRole.update({
+      where: { id: roleOptionId },
+      data: {
+        roleId: dto.roleId,
+        emoji: dto.emoji,
+        label: dto.label,
+        description: dto.description,
+        buttonStyle: dto.buttonStyle,
       },
     });
   }
